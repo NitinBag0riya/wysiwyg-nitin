@@ -52,7 +52,6 @@ class App extends Component {
     }
   };
 
-
   savePost = () => {
     base.push('wysiwyg', {
       data: {
