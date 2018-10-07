@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import "./App.scss";
 import base from './config/firebase';
-import { copyContent, cutContent, boldContent, italicContent, hyperlinkContent, imageContent  } from './components/Methods'
+import { copyContent, cutContent, boldContent, italicContent, hyperlinkContent, imageContent  } from './components/EditorMethods'
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faStroopwafel,faCheckSquare,faCoffee,faCopy,faBold,faItalic,faPaste,faLink,faImage,faCut,faSave,faShare,faEye,faFile,faFileImport } from '@fortawesome/free-solid-svg-icons';
@@ -12,29 +12,31 @@ class App extends Component {
   constructor(props){
     super(props);
     this.state ={
-      paste : '',
       editable: true,
       title : '',
-      posts : []
+      posts : [],
+      btnType : 'Save',
+      activeImportKey : null
     };
 
   }
 
   componentDidMount = () => {
-     base.bindToState('wysiwyg', {
+    base.bindToState('wysiwyg', {
        context: this,
        state: 'posts',
        asArray: true
      });
   }
   
+  //set editor mode preview || edit
   editableMode = () => {
     this.setState({
       editable : !this.state.editable
     })
   };
 
-
+//export editor content into .html file
   exportContent = () => {
     editableContent = document.getElementById('contentEdit').innerHTML;
     if(this.state.title !== '' && editableContent !== '' ){
@@ -47,27 +49,69 @@ class App extends Component {
       downloadElement.click();
       document.body.removeChild(downloadElement);
 
+      this.setState({
+        title : ''
+      });
+       document.getElementById('contentEdit').innerHTML = ''
+
     }else{
       alert('Title and Body Content can\'t Be Empty ')
     }
   };
 
+
   savePost = () => {
-    base.push('wysiwyg', {
-      data: {
-        title: this.state.title,
-        editableContent : document.getElementById('contentEdit').innerHTML
-      }
-    }).then(data => {
-      alert('Saved !')
-    }).catch(err => {
-      alert('Error !')
-    })
+  if (this.state.title !== '' && editableContent !== '') {
+      base.push('wysiwyg', {
+          data: {
+            title: this.state.title,
+            editableContent : document.getElementById('contentEdit').innerHTML
+          }
+        }).then(data => {
+          alert('Saved !')
+          this.setState({
+            title : ''
+          });
+           document.getElementById('contentEdit').innerHTML = '';
+        }).catch(err => {
+          alert('Error !')
+        })
+    }else{
+      alert('Title and Body Content can\'t Be Empty ')
+    }
+    
   };
 
-  importContent = (title, content) => {
+
+  updatePost = (id) => {
+  if (this.state.title !== '' && editableContent !== '') {
+      base.update('wysiwyg/'+id, {
+          data: {
+            title: this.state.title,
+            editableContent : document.getElementById('contentEdit').innerHTML
+          }
+        }).then(data => {
+          alert('Updated !');
+          this.setState({
+            title : '',
+            btnType : 'Save'
+          });
+           document.getElementById('contentEdit').innerHTML = ''
+        }).catch(err => {
+          alert('Error Occured !')
+        })
+    }else{
+      alert('Title and Body Content can\'t Be Empty ')
+    }
+    
+  };
+
+//import saved posts.
+  importContent = (title, content, key) => {
     this.setState({
-      title : title
+      title : title,
+      btnType : 'Update',
+      activeImportKey : key
     });
     document.getElementById('contentEdit').innerHTML = content;
   };
@@ -86,15 +130,16 @@ class App extends Component {
             <div className="form-row">
             {/* Editor title */}
               <div className='form-wrapper'>
-                <input type="text" className=" form-title" onChange={ (e) => { this.setState({
-                  title:e.target.value
-                }) }} placeholder='Post Title Here' />
+                <input type="text" className=" form-title" onChange={ 
+                  (e) => { this.setState({
+                    title:e.target.value
+                }) }
+                } value={ this.state.title } placeholder="Post Title..." />
               </div>
 
               {/* Editor Action Buttons  */}
               
-              <MethodButton />
-
+              <EditorActionsView />
 
               {/* Editor Content  */}
 
@@ -103,9 +148,15 @@ class App extends Component {
               </div>
 
             </div>
-
+                
+              {/* Footer action buttons */}
              <div className='footer-btns'>
-                <button className="btn pull-left btn-primary" onClick={ this.savePost }><FontAwesomeIcon icon={faSave} />  Save</button>
+                {
+                  ( this.state.btnType === 'Save') ? 
+                    <button className="btn pull-left btn-primary" onClick={ this.savePost }><FontAwesomeIcon icon={faSave} /> Save </button>
+                    : 
+                    <button className="btn pull-left btn-primary" onClick={ e => { this.updatePost(this.state.activeImportKey) } }><FontAwesomeIcon icon={faSave} /> Update </button>
+                }
                 <button className="btn pull-left btn-white" style={{ marginLeft:5}} onClick={  this.editableMode }><FontAwesomeIcon icon={faEye} /> {
                   (this.state.editable) ? 'Preview' : 'Edit'
                  }</button>
@@ -115,6 +166,7 @@ class App extends Component {
           </div>
           
           <div className="col-sm-12 col-md-6 preview-view">
+
            {/* Posts Goes Here */}
           
           <div className="container">
@@ -122,14 +174,14 @@ class App extends Component {
           <h5> <FontAwesomeIcon icon={faFile}/> Recent Posts</h5>
 
           { 
-              ( (this.state.posts).length > 0 ) ? this.state.posts.map( (ele, key) => {
+              ( (this.state.posts).length > 0 ) ? this.state.posts.map( (post, key) => {
                 return(
                    <div className="list-group util-margin" key={key}>
                     <p href="#" className="list-group-item clearfix postsView">
                       
-                     { ele.title }
+                     { post.title }
                       <span className="pull-right">
-                        <button className="btn btn-sm btn-success" onClick={ () => this.importContent(ele.title, ele.editableContent)}>
+                        <button className="btn btn-sm btn-success" onClick={ () => this.importContent(post.title, post.editableContent, post.key)}>
                           <FontAwesomeIcon icon={faFileImport} /> Import
                         </button>
                       </span>
@@ -150,12 +202,11 @@ class App extends Component {
 }
 
 
-const MethodButton = () => {
+const EditorActionsView = () => {
   return(
             <div className="col-sm-12 btns-container">
                 <button type="button" className="btn btn-outline-primary btn-sm btn-style" onClick={ cutContent }><FontAwesomeIcon icon={faCut} /> Cut</button>
-               <button type="button" className="btn btn-outline-primary btn-sm btn-style" onClick={ copyContent }><FontAwesomeIcon icon={faCopy} /> Copy</button>
-                {/* <button type="button" className="btn btn-outline-primary btn-sm btn-style" onClick={ pasteContent }><FontAwesomeIcon icon={faPaste} /> Paste</button> */}
+                <button type="button" className="btn btn-outline-primary btn-sm btn-style" onClick={ copyContent }><FontAwesomeIcon icon={faCopy} /> Copy</button>
                 <button type="button" className="btn btn-outline-primary btn-sm btn-style" onClick={ boldContent }><FontAwesomeIcon icon={faBold} />  Bold</button>
                 <button type="button" className="btn btn-outline-primary btn-sm btn-style" onClick={ italicContent }><FontAwesomeIcon icon={faItalic} /> Italic</button>
                 <button type="button" className="btn btn-outline-primary btn-sm btn-style" onClick={ hyperlinkContent }><FontAwesomeIcon icon={faLink} /> Hyperlink</button>

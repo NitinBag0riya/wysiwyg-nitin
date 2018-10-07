@@ -18,10 +18,6 @@ export const imageContent = () => {
 
  };
 
- // pasteContent = () => {
- //       document.execCommand('inserttext',false,this.state.paste);
- // }
-
 export const cutContent = () => {
      document.execCommand('cut');
  };
@@ -33,7 +29,7 @@ export const italicContent = () => {
 export const hyperlinkContent = () => {
      let linkURL = prompt('Enter Url', 'www.example.com');
      let sText = document.getSelection();
-     document.execCommand('insertHTML', false, '<a href="' + linkURL + '" target="_blank">' + sText + '</a>');
+     document.execCommand('insertHTML', false, '<a href="' + linkURL + '" target="_blank" rel="noopener noreferrer" >' + sText + '</a>');
  };
 
 export const boldContent = () => {
