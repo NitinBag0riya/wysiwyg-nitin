@@ -15,9 +15,9 @@ export const imageContent = () => {
      } else {
          alert('Select Image type of JPEG/PNG')
      }
-
  };
 
+ 
 export const cutContent = () => {
      document.execCommand('cut');
  };
@@ -28,10 +28,23 @@ export const italicContent = () => {
 
 export const hyperlinkContent = () => {
      let linkURL = prompt('Enter Url', 'www.example.com');
-     let sText = document.getSelection();
-     document.execCommand('insertHTML', false, '<a href="' + linkURL + '" target="_blank" rel="noopener noreferrer" >' + sText + '</a>');
+     //let sText = document.getSelection();
+     document.execCommand('createLink', false, linkURL);
  };
 
 export const boldContent = () => {
      document.execCommand('bold');
  };
+
+ export const justifyRight = () => {
+     document.execCommand('justifyRight');
+ }
+
+export const justifyLeft = () => {
+    document.execCommand('justifyLeft');
+}
+
+export const justifyCenter = () => {
+    document.execCommand('justifyCenter');
+}
+
